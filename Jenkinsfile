@@ -67,6 +67,19 @@ pipeline{
                 sh "trivy image rameshkumarverma/tetrisv2:latest > trivyimage.txt" 
             }
         }
+        stage('Deploy to Kubernets'){
+            steps{
+                script{
+                    // dir('Kubernetes') {
+                      withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'k8s', namespace: '', restrictKubeConfigAccess: false, serverUrl: '') {
+                      sh 'kubectl delete --all pods'
+                      sh 'kubectl apply -f deployment-service.yml'
+                      // sh 'kubectl apply -f service.yml'
+                      }   
+                    }
+                }
+            }
+        }
     //     stage('Checkout Code') {
     //         steps {
     //             git branch: 'main', url: 'https://github.com/Aj7Ay/Tetris-manifest.git'
