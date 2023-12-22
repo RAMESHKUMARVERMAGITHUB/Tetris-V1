@@ -6,6 +6,8 @@ pipeline{
     }
     environment {
         SCANNER_HOME=tool 'sonar-scanner'
+        GIT_REPO_NAME = "Tetris-manifest"
+        GIT_USER_NAME = "Aj7Ay"      # change your Github Username here
     }
     stages {
         stage('clean workspace'){
@@ -15,7 +17,7 @@ pipeline{
         }
         stage('Checkout from Git'){
             steps{
-                git branch: 'main', url: 'https://github.com/rameshkumarvermagithub/Tetris-V1.git'
+                git branch: 'main', url: 'https://github.com/Aj7Ay/Tetris-V1.git'
             }
         }
         stage("Sonarqube Analysis "){
@@ -29,7 +31,7 @@ pipeline{
         stage("quality gate"){
            steps {
                 script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar' 
+                    waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token' 
                 }
             } 
         }
@@ -53,16 +55,34 @@ pipeline{
             steps{
                 script{
                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){   
-                       sh "docker build -t rameshkumarverma/tetrisv1 ."
-                       // sh "docker tag tetrisv1 sevenajay/tetrisv1:latest "
-                       sh "docker push rameshkumarverma/tetrisv1:latest "
+                       sh "docker build -t tetrisv1 ."
+                       sh "docker tag tetrisv1 sevenajay/tetrisv1:latest "
+                       sh "docker push sevenajay/tetrisv1:latest "
                     }
                 }
             }
         }
         stage("TRIVY"){
             steps{
-                sh "trivy image rameshkumarverma/tetrisv1:latest > trivyimage.txt" 
+                sh "trivy image sevenajay/tetrisv1:latest > trivyimage.txt" 
+            }
+        }
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Aj7Ay/Tetris-manifest.git'
+            }
+        }
+        stage('Update Deployment File') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                       NEW_IMAGE_NAME = "sevenajay/tetrisv1:latest"   #update your image here
+                       sh "sed -i 's|image: .*|image: $NEW_IMAGE_NAME|' deployment.yml"
+                       sh 'git add deployment.yml'
+                       sh "git commit -m 'Update deployment image to $NEW_IMAGE_NAME'"
+                       sh "git push @github.com/${GIT_USER_NAME}/${GIT_REPO_NAME">https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main"
+                    }
+                }
             }
         }
     }
